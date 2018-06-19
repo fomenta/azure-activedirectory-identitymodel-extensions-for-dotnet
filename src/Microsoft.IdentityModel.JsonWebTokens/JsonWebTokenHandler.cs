@@ -79,6 +79,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens
         /// <param name="token">String that should represent a valid JWT.</param>
         /// <remarks>Uses <see cref="Regex.IsMatch(string, string)"/> matching:
         /// <para>JWS: @"^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]*$"</para>
+        /// <para>JWE: (dir): @"^[A-Za-z0-9-_]+\.\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]*$"</para>
+        /// <para>JWE: (wrappedkey): @"^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]$"</para>
         /// </remarks>
         /// <returns>
         /// <para>'false' if the token is null or whitespace.</para>
@@ -103,6 +105,10 @@ namespace Microsoft.IdentityModel.JsonWebTokens
             if (tokenParts.Length == JwtConstants.JwsSegmentCount)
             {
                 return JwtTokenUtilities.RegexJws.IsMatch(token);
+            }
+            else if (tokenParts.Length == JwtConstants.JweSegmentCount)
+            {
+                return JwtTokenUtilities.RegexJwe.IsMatch(token);
             }
 
             LogHelper.LogInformation(LogMessages.IDX14107);
@@ -136,7 +142,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
         /// <param name="signingCredentials">Defines the security key and algorithm that will be used to sign the JWT.</param>
         /// <param name="encryptingCredentials">Defines the security key and algorithm that will be used to encrypt the JWT.</param>
         /// <returns>A JWT in compact serialization format.</returns>
-        private string CreateJsonWebToken(JObject payload, SigningCredentials signingCredentials, EncryptingCredentials encryptingCredentials)
+        public string CreateJsonWebToken(JObject payload, SigningCredentials signingCredentials, EncryptingCredentials encryptingCredentials)
         {
             if (payload == null)
                 throw LogHelper.LogArgumentNullException(nameof(payload));
@@ -356,10 +362,12 @@ namespace Microsoft.IdentityModel.JsonWebTokens
         /// <summary>
         /// Converts a string into an instance of <see cref="JsonWebToken"/>.
         /// </summary>
-        /// <param name="token">A 'JSON Web Token' (JWT) in JWS Compact Serialization Format.</param>
+        /// <param name="token">A 'JSON Web Token' (JWT) in JWS or JWE Compact Serialization Format.</param>
         /// <returns>A <see cref="JsonWebToken"/></returns>
         /// <exception cref="ArgumentNullException">'token' is null or empty.</exception>
         /// <exception cref="ArgumentException">'token.Length' is greater than <see cref="SecurityTokenHandler.MaximumTokenSizeInBytes"/>.</exception>
+        /// <remarks><para>If the 'token' is in JWE Compact Serialization format, only the protected header will be deserialized.</para>
+        /// This method is unable to decrypt the payload. Use <see cref="ValidateToken(string, TokenValidationParameters)"/>to obtain the payload.</remarks>
         public JsonWebToken ReadJsonWebToken(string token)
         {
             if (string.IsNullOrEmpty(token))

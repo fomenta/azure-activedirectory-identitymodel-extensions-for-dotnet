@@ -58,28 +58,30 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
 
             JwtTestData.InvalidRegExSegmentsData(theoryData);
             JwtTestData.InvalidNumberOfSegmentsData("IDX14110:", theoryData);
+            JwtTestData.InvalidEncodedSegmentsData("", theoryData);
+            JwtTestData.ValidEncodedSegmentsData(theoryData);
 
             return theoryData;
         }
 
         // Tests checks to make sure that the token string created by the JsonWebTokenHandler is consistent with the 
         // token string created by the JwtSecurityTokenHandler.
-        [Theory, MemberData(nameof(CreateTokenTheoryData))]
-        public void CreateToken(CreateTokenTheoryData theoryData)
+        [Theory, MemberData(nameof(CreateJWSTheoryData))]
+        public void CreateJWS(CreateTokenTheoryData theoryData)
         {
             var context = TestUtilities.WriteHeader($"{this}.CreateToken", theoryData);
             try
             {
-                string jwtFromJwtHandler = theoryData.JwtSecurityTokenHandler.CreateEncodedJwt(theoryData.TokenDescriptor);
+                string jwsFromJwtHandler = theoryData.JwtSecurityTokenHandler.CreateEncodedJwt(theoryData.TokenDescriptor);
                 string jwtFromJsonHandler = theoryData.JsonWebTokenHandler.CreateToken(theoryData.Payload, KeyingMaterial.JsonWebKeyRsa256SigningCredentials);
 
-                theoryData.JwtSecurityTokenHandler.ValidateToken(jwtFromJwtHandler, theoryData.ValidationParameters, out SecurityToken validatedToken);
+                theoryData.JwtSecurityTokenHandler.ValidateToken(jwsFromJwtHandler, theoryData.ValidationParameters, out SecurityToken validatedToken);
                 theoryData.JsonWebTokenHandler.ValidateToken(jwtFromJsonHandler, theoryData.ValidationParameters);
 
                 theoryData.ExpectedException.ProcessNoException(context);
-                var jwtTokenFromBuilder = new JsonWebToken(jwtFromJwtHandler);
+                var jwsTokenFromJwtHandler = new JsonWebToken(jwsFromJwtHandler);
                 var jwtTokenFromHandler = new JsonWebToken(jwtFromJsonHandler);
-                IdentityComparer.AreEqual(jwtTokenFromBuilder, jwtTokenFromHandler, context);
+                IdentityComparer.AreEqual(jwsTokenFromJwtHandler, jwtTokenFromHandler, context);
             }
             catch (Exception ex)
             {
@@ -89,7 +91,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
             TestUtilities.AssertFailIfErrors(context);
         }
 
-        public static TheoryData<CreateTokenTheoryData> CreateTokenTheoryData
+
+        public static TheoryData<CreateTokenTheoryData> CreateJWSTheoryData
         {
             get
             {
@@ -127,7 +130,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
         // Test checks to make sure that the token payload retrieved from ValidateToken is the same as the payload
         // the token was initially created with. 
         [Fact]
-        public void RoundTripToken()
+        public void RoundTripJWS()
         {
             TestUtilities.WriteHeader($"{this}.RoundTripToken");
             var context = new CompareContext();
@@ -150,7 +153,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
         // Test checks to make sure that an access token can be successfully validated by the JsonWebTokenHandler.
         // Also ensures that a non-standard claim can be successfully retrieved from the payload and validated.
         [Fact]
-        public void ValidateToken()
+        public void ValidateJWS()
         {
             TestUtilities.WriteHeader($"{this}.ValidateToken");
 
