@@ -66,10 +66,74 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
 
         // Tests checks to make sure that the token string created by the JsonWebTokenHandler is consistent with the 
         // token string created by the JwtSecurityTokenHandler.
+        [Theory, MemberData(nameof(CreateJWETheoryData))]
+        public void CreateJWE(CreateTokenTheoryData theoryData)
+        {
+            var context = TestUtilities.WriteHeader($"{this}.CreateJWE", theoryData);
+            try
+            {
+                string jwsFromJwtHandler = theoryData.JwtSecurityTokenHandler.CreateEncodedJwt(theoryData.TokenDescriptor);
+                string jwsFromJsonHandler = theoryData.JsonWebTokenHandler.CreateJsonWebToken(theoryData.Payload, theoryData.TokenDescriptor.SigningCredentials, theoryData.TokenDescriptor.EncryptingCredentials);
+
+                //theoryData.JwtSecurityTokenHandler.ValidateToken(jwsFromJwtHandler, theoryData.ValidationParameters, out SecurityToken validatedToken);
+                //theoryData.JsonWebTokenHandler.ValidateToken(jwtFromJsonHandler, theoryData.ValidationParameters);
+
+                theoryData.ExpectedException.ProcessNoException(context);
+                var jwsTokenFromJwtHandler = new JsonWebToken(jwsFromJwtHandler);
+                var jwsTokenFromJsonHandler = new JsonWebToken(jwsFromJsonHandler);
+                IdentityComparer.AreEqual(jwsTokenFromJwtHandler, jwsTokenFromJsonHandler, context);
+            }
+            catch (Exception ex)
+            {
+                theoryData.ExpectedException.ProcessException(ex, context);
+            }
+
+            TestUtilities.AssertFailIfErrors(context);
+        }
+
+
+        public static TheoryData<CreateTokenTheoryData> CreateJWETheoryData
+        {
+            get
+            {
+                var tokenHandler = new JwtSecurityTokenHandler
+                {
+                    SetDefaultTimesOnTokenCreation = false
+                };
+
+                tokenHandler.InboundClaimTypeMap.Clear();
+
+                return new TheoryData<CreateTokenTheoryData>
+                {
+                    new CreateTokenTheoryData
+                    {
+                        First = true,
+                        Payload = Default.Payload,
+                        TokenDescriptor =  new SecurityTokenDescriptor
+                        {
+                            SigningCredentials = KeyingMaterial.JsonWebKeyRsa256SigningCredentials,
+                            EncryptingCredentials = KeyingMaterial.DefaultSymmetricEncryptingCreds_Aes256_Sha512_512,
+                        },
+                        JsonWebTokenHandler = new JsonWebTokenHandler(),
+                        JwtSecurityTokenHandler = tokenHandler,
+                        ValidationParameters = new TokenValidationParameters
+                        {
+                            IssuerSigningKey = KeyingMaterial.JsonWebKeyRsa256SigningCredentials.Key,
+                            TokenDecryptionKey = KeyingMaterial.DefaultSymmetricSecurityKey_512,
+                            ValidAudience = Default.Audience,
+                            ValidIssuer = Default.Issuer
+                        }
+                    },
+                };
+            }
+        }
+
+        // Tests checks to make sure that the token string created by the JsonWebTokenHandler is consistent with the 
+        // token string created by the JwtSecurityTokenHandler.
         [Theory, MemberData(nameof(CreateJWSTheoryData))]
         public void CreateJWS(CreateTokenTheoryData theoryData)
         {
-            var context = TestUtilities.WriteHeader($"{this}.CreateToken", theoryData);
+            var context = TestUtilities.WriteHeader($"{this}.CreateJWS", theoryData);
             try
             {
                 string jwsFromJwtHandler = theoryData.JwtSecurityTokenHandler.CreateEncodedJwt(theoryData.TokenDescriptor);
