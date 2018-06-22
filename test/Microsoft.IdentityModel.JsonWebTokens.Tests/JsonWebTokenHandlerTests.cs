@@ -29,9 +29,11 @@ using Microsoft.IdentityModel.Tests;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.IdentityModel.Tokens.Jwt.Tests;
 using System.Security.Claims;
+using System.Text;
 using Xunit;
 
 #pragma warning disable CS3016 // Arrays as attribute arguments is not CLS-compliant
@@ -72,16 +74,16 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
             var context = TestUtilities.WriteHeader($"{this}.CreateJWE", theoryData);
             try
             {
-                string jwsFromJwtHandler = theoryData.JwtSecurityTokenHandler.CreateEncodedJwt(theoryData.TokenDescriptor);
-                string jwsFromJsonHandler = theoryData.JsonWebTokenHandler.CreateJsonWebToken(theoryData.Payload, theoryData.TokenDescriptor.SigningCredentials, theoryData.TokenDescriptor.EncryptingCredentials);
+                string jweFromJwtHandler = theoryData.JwtSecurityTokenHandler.CreateEncodedJwt(theoryData.TokenDescriptor);
+                string jweFromJsonHandler = theoryData.JsonWebTokenHandler.CreateJsonWebToken(theoryData.Payload, theoryData.TokenDescriptor.SigningCredentials, theoryData.TokenDescriptor.EncryptingCredentials);
 
                 //theoryData.JwtSecurityTokenHandler.ValidateToken(jwsFromJwtHandler, theoryData.ValidationParameters, out SecurityToken validatedToken);
                 //theoryData.JsonWebTokenHandler.ValidateToken(jwtFromJsonHandler, theoryData.ValidationParameters);
 
                 theoryData.ExpectedException.ProcessNoException(context);
-                var jwsTokenFromJwtHandler = new JsonWebToken(jwsFromJwtHandler);
-                var jwsTokenFromJsonHandler = new JsonWebToken(jwsFromJsonHandler);
-                IdentityComparer.AreEqual(jwsTokenFromJwtHandler, jwsTokenFromJsonHandler, context);
+                var jweTokenFromJwtHandler = new JsonWebToken(jweFromJwtHandler);
+                var jweTokenFromJsonHandler = new JsonWebToken(jweFromJsonHandler);
+                IdentityComparer.AreEqual(jweTokenFromJwtHandler, jweTokenFromJsonHandler, context);
             }
             catch (Exception ex)
             {
@@ -113,6 +115,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                         {
                             SigningCredentials = KeyingMaterial.JsonWebKeyRsa256SigningCredentials,
                             EncryptingCredentials = KeyingMaterial.DefaultSymmetricEncryptingCreds_Aes256_Sha512_512,
+                            Subject = new ClaimsIdentity(Default.PayloadClaims),
                         },
                         JsonWebTokenHandler = new JsonWebTokenHandler(),
                         JwtSecurityTokenHandler = tokenHandler,
@@ -137,15 +140,15 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
             try
             {
                 string jwsFromJwtHandler = theoryData.JwtSecurityTokenHandler.CreateEncodedJwt(theoryData.TokenDescriptor);
-                string jwtFromJsonHandler = theoryData.JsonWebTokenHandler.CreateToken(theoryData.Payload, KeyingMaterial.JsonWebKeyRsa256SigningCredentials);
+                string jwsFromJsonHandler = theoryData.JsonWebTokenHandler.CreateToken(theoryData.Payload, KeyingMaterial.JsonWebKeyRsa256SigningCredentials);
 
                 theoryData.JwtSecurityTokenHandler.ValidateToken(jwsFromJwtHandler, theoryData.ValidationParameters, out SecurityToken validatedToken);
-                theoryData.JsonWebTokenHandler.ValidateToken(jwtFromJsonHandler, theoryData.ValidationParameters);
+                theoryData.JsonWebTokenHandler.ValidateToken(jwsFromJsonHandler, theoryData.ValidationParameters);
 
                 theoryData.ExpectedException.ProcessNoException(context);
                 var jwsTokenFromJwtHandler = new JsonWebToken(jwsFromJwtHandler);
-                var jwtTokenFromHandler = new JsonWebToken(jwtFromJsonHandler);
-                IdentityComparer.AreEqual(jwsTokenFromJwtHandler, jwtTokenFromHandler, context);
+                var jwsTokenFromHandler = new JsonWebToken(jwsFromJsonHandler);
+                IdentityComparer.AreEqual(jwsTokenFromJwtHandler, jwsTokenFromHandler, context);
             }
             catch (Exception ex)
             {
